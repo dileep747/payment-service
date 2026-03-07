@@ -1,17 +1,22 @@
 """
-Payment Service - With Discount Support
+Payment Service - With Discount Support and Structured Logging
 Processes payments for orders
 """
 import os
 import logging
+import json
 from flask import Flask, request, jsonify
 
+# CHANGED: Structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 # TODO: Add Prometheus metrics here
-# CHANGED: Added metadata with discount support
 PAYMENT_METHODS = {
     "credit_card": {
         "name": "Credit Card",
@@ -34,7 +39,7 @@ def health():
 @app.route('/api/payment/process', methods=['POST'])
 def process_payment():
     data = request.get_json()
-    logger.info(f"Processing payment: {data}")
+    logger.info(f"Processing payment: {json.dumps(data)}")  # CHANGED: JSON logging
     amount = data.get('amount')
     payment_method = data.get('payment_method', 'credit_card')
     use_discount = data.get('use_discount', False)
@@ -44,17 +49,14 @@ def process_payment():
 
     payment_config = PAYMENT_METHODS[payment_method]
 
-    # CHANGED: Added discount calculation
     if use_discount:
-        # BUG: This will crash when metadata is None (PayPal case)
-        discount_percent = payment_config['metadata']['discount_percent']
+        discount_percent = payment_config['metadata']['discount_percent']  # BUG: Still crashes
         discount_amount = amount * discount_percent / 100
         final_amount = amount - discount_amount
     else:
         final_amount = amount
 
-    # Add processing fee
-    processing_fee = payment_config['metadata']['processing_fee']  # BUG: Also crashes for PayPal
+    processing_fee = payment_config['metadata']['processing_fee']  # BUG: Still crashes
     final_amount += processing_fee
 
     return jsonify({
