@@ -1,5 +1,5 @@
 """
-Payment Service - With Metrics
+Payment Service - With Discount Support
 Processes payments for orders
 """
 import os
@@ -11,10 +11,20 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # TODO: Add Prometheus metrics here
+# CHANGED: Added metadata with discount support
 PAYMENT_METHODS = {
-    "credit_card": {"name": "Credit Card", "fee": 2.5},
-    "debit_card": {"name": "Debit Card", "fee": 1.5},
-    "paypal": {"name": "PayPal", "fee": 3.0},
+    "credit_card": {
+        "name": "Credit Card",
+        "metadata": {"discount_percent": 0, "processing_fee": 2.5}
+    },
+    "debit_card": {
+        "name": "Debit Card",
+        "metadata": {"discount_percent": 0, "processing_fee": 1.5}
+    },
+    "paypal": {
+        "name": "PayPal",
+        "metadata": None
+    },
 }
 
 @app.route('/health', methods=['GET'])
@@ -27,12 +37,25 @@ def process_payment():
     logger.info(f"Processing payment: {data}")
     amount = data.get('amount')
     payment_method = data.get('payment_method', 'credit_card')
+    use_discount = data.get('use_discount', False)
 
     if payment_method not in PAYMENT_METHODS:
         return jsonify({"error": "Invalid payment method"}), 400
 
-    config = PAYMENT_METHODS[payment_method]
-    final_amount = amount + config['fee']
+    payment_config = PAYMENT_METHODS[payment_method]
+
+    # CHANGED: Added discount calculation
+    if use_discount:
+        # BUG: This will crash when metadata is None (PayPal case)
+        discount_percent = payment_config['metadata']['discount_percent']
+        discount_amount = amount * discount_percent / 100
+        final_amount = amount - discount_amount
+    else:
+        final_amount = amount
+
+    # Add processing fee
+    processing_fee = payment_config['metadata']['processing_fee']  # BUG: Also crashes for PayPal
+    final_amount += processing_fee
 
     return jsonify({
         "payment_id": f"PAY-{data.get('order_id')}",
