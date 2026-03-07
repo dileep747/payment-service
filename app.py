@@ -7,7 +7,6 @@ import logging
 import json
 from flask import Flask, request, jsonify
 
-# CHANGED: Structured logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -34,12 +33,17 @@ PAYMENT_METHODS = {
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status": "healthy"}), 200
+    # CHANGED: Added version info
+    return jsonify({
+        "status": "healthy",
+        "version": "1.0.0",
+        "service": "payment-service"
+    }), 200
 
 @app.route('/api/payment/process', methods=['POST'])
 def process_payment():
     data = request.get_json()
-    logger.info(f"Processing payment: {json.dumps(data)}")  # CHANGED: JSON logging
+    logger.info(f"Processing payment: {json.dumps(data)}")
     amount = data.get('amount')
     payment_method = data.get('payment_method', 'credit_card')
     use_discount = data.get('use_discount', False)
