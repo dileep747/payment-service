@@ -1,5 +1,5 @@
 """
-Payment Service - Initial Implementation
+Payment Service - With Metrics
 Processes payments for orders
 """
 import os
@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+# TODO: Add Prometheus metrics here
 PAYMENT_METHODS = {
     "credit_card": {"name": "Credit Card", "fee": 2.5},
     "debit_card": {"name": "Debit Card", "fee": 1.5},
